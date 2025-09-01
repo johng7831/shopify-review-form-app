@@ -1,0 +1,29 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "77c41742e2a17ed86a2af89663d86ddf"
+name = "shop-form"
+handle = "shop-form-2"
+application_url = "https://hardwood-yea-ver-container.trycloudflare.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2025-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products"
+
+[auth]
+redirect_urls = ["https://hardwood-yea-ver-container.trycloudflare.com/auth/callback", "https://hardwood-yea-ver-container.trycloudflare.com/auth/shopify/callback", "https://hardwood-yea-ver-container.trycloudflare.com/api/auth/callback"]
+
+[app_proxy]
+url = "https://hardwood-yea-ver-container.trycloudflare.com"
+prefix = "apps"
+subpath = "proxy"
+
+[pos]
+embedded = false
