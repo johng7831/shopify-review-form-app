@@ -1,63 +1,53 @@
 import { useEffect, useState } from "react";
 import { Card, Page, Layout, TextContainer, Text, Spinner } from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
-import { useTranslation } from "react-i18next";
 
 export default function PageName() {
-  const { t } = useTranslation();
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [submissions, setSubmissions] = useState([]);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    async function fetchData() {
+    async function fetchUsers() {
       try {
-        // Get shop from window or query
-        const shop = window.Shopify?.shop || window.location.hostname;
-
-        const res = await fetch(`/userdata/userinfo?shop=${encodeURIComponent(shop)}`);
+        // Replace with your actual shop domain dynamically if needed
+        const shop = "myapp-store-com.myshopify.com";
+        const res = await fetch(`/userdata/userinfo?shop=${shop}`);
         const data = await res.json();
 
         if (data.success) {
-          setSubmissions(data.data);
+          setUsers(data.data);
         } else {
-          setError(data.error || "Failed to load submissions");
+          console.error("Error fetching users:", data.error);
         }
       } catch (err) {
-        setError(err.message);
+        console.error("Fetch error:", err);
       } finally {
         setLoading(false);
       }
     }
-    fetchData();
+
+    fetchUsers();
   }, []);
 
   return (
-    <Page>
-      <TitleBar title="Form Submissions" />
+    <Page title="Form Submissions">
       <Layout>
         <Layout.Section>
-          {loading && <Spinner accessibilityLabel="Loading" size="large" />}
-          {error && <Text tone="critical">{error}</Text>}
-
-          {!loading && !error && submissions.length === 0 && (
-            <Text>No submissions yet.</Text>
-          )}
-
-          {!loading && submissions.length > 0 && (
-            <div style={{ display: "grid", gap: "16px" }}>
-              {submissions.map((sub, index) => (
-                <Card key={index} sectioned>
-                  <TextContainer>
-                    <Text variant="headingMd">{sub.username}</Text>
-                    <Text>Email: {sub.email}</Text>
-                    <Text subdued>
-                      Submitted: {new Date(sub.submittedAt).toLocaleString()}
-                    </Text>
-                  </TextContainer>
-                </Card>
-              ))}
-            </div>
+          {loading ? (
+            <Spinner accessibilityLabel="Loading users" size="large" />
+          ) : users.length === 0 ? (
+            <Text>No submissions found.</Text>
+          ) : (
+            users.map((user) => (
+              <Card key={user._id} sectioned>
+                <TextContainer>
+                  <Text variant="headingMd">{user.username}</Text>
+                  <Text>Email: {user.email}</Text>
+                  <Text>
+                    Submitted: {new Date(user.submittedAt).toLocaleString()}
+                  </Text>
+                </TextContainer>
+              </Card>
+            ))
           )}
         </Layout.Section>
       </Layout>
