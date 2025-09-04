@@ -3,7 +3,7 @@
 client_id = "77c41742e2a17ed86a2af89663d86ddf"
 name = "shop-form"
 handle = "shop-form-2"
-application_url = "https://stroke-zshops-romance-awareness.trycloudflare.com"
+application_url = "https://ruled-participant-sea-timeline.trycloudflare.com"
 embedded = true
 
 [build]
@@ -18,10 +18,10 @@ api_version = "2025-07"
 scopes = "write_products"
 
 [auth]
-redirect_urls = ["https://stroke-zshops-romance-awareness.trycloudflare.com/auth/callback", "https://stroke-zshops-romance-awareness.trycloudflare.com/auth/shopify/callback", "https://stroke-zshops-romance-awareness.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://ruled-participant-sea-timeline.trycloudflare.com/auth/callback", "https://ruled-participant-sea-timeline.trycloudflare.com/auth/shopify/callback", "https://ruled-participant-sea-timeline.trycloudflare.com/api/auth/callback"]
 
 [app_proxy]
-url = "https://stroke-zshops-romance-awareness.trycloudflare.com"
+url = "https://ruled-participant-sea-timeline.trycloudflare.com"
 prefix = "apps"
 subpath = "proxy"
 

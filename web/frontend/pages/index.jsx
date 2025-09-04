@@ -1,93 +1,47 @@
-import {
-  Card,
-  Page,
-  Layout,
-  TextContainer,
-  Image,
-  Stack,
-  Link,
-  Text,
-} from "@shopify/polaris";
-import { TitleBar } from "@shopify/app-bridge-react";
-import { useTranslation, Trans } from "react-i18next";
+import { useState, useEffect } from "react";
+import { Page, Card, Select, Button } from "@shopify/polaris";
 
-import { trophyImage } from "../assets";
+export default function ThemeSelector() {
+  const [themes, setThemes] = useState([]);
+  const [selectedTheme, setSelectedTheme] = useState("");
 
-import { ProductsCard } from "../components";
+  useEffect(() => {
+    // Fetch themes from your backend (your backend should call Shopify Admin API)
+    fetch("/api/themes")
+      .then((res) => res.json())
+      .then((data) => {
+        setThemes(
+          data.map((theme) => ({
+            label: `${theme.name} (${theme.role})`,
+            value: theme.id,
+          }))
+        );
+      });
+  }, []);
 
-export default function HomePage() {
-  const { t } = useTranslation();
+  const handleRedirect = () => {
+    const myshopifyDomain = "your-store.myshopify.com";
+    const template = "product"; // Or whichever template you want
+    const apiKey = "YOUR_API_KEY";
+    const handle = "YOUR_BLOCK_HANDLE";
+
+    const appBlockUrl = `https://${myshopifyDomain}/admin/themes/${selectedTheme}/editor?template=${template}&addAppBlockId=${apiKey}/${handle}&target=newAppsSection`;
+    window.open(appBlockUrl, "_blank");
+  };
+
   return (
-    <Page narrowWidth>
-      <TitleBar title={t("HomePage.title")} />
-      <Layout>
-        <Layout.Section>
-          <Card sectioned>
-            <Stack
-              wrap={false}
-              spacing="extraTight"
-              distribution="trailing"
-              alignment="center"
-            >
-              <Stack.Item fill>
-                <TextContainer spacing="loose">
-                  <Text as="h2" variant="headingMd">
-                    {t("HomePage.heading")}
-                  </Text>
-                  <p>
-                    <Trans
-                      i18nKey="HomePage.yourAppIsReadyToExplore"
-                      components={{
-                        PolarisLink: (
-                          <Link url="https://polaris.shopify.com/" external />
-                        ),
-                        AdminApiLink: (
-                          <Link
-                            url="https://shopify.dev/api/admin-graphql"
-                            external
-                          />
-                        ),
-                        AppBridgeLink: (
-                          <Link
-                            url="https://shopify.dev/apps/tools/app-bridge"
-                            external
-                          />
-                        ),
-                      }}
-                    />
-                  </p>
-                  <p>{t("HomePage.startPopulatingYourApp")}</p>
-                  <p>
-                    <Trans
-                      i18nKey="HomePage.learnMore"
-                      components={{
-                        ShopifyTutorialLink: (
-                          <Link
-                            url="https://shopify.dev/apps/getting-started/add-functionality"
-                            external
-                          />
-                        ),
-                      }}
-                    />
-                  </p>
-                </TextContainer>
-              </Stack.Item>
-              <Stack.Item>
-                <div style={{ padding: "0 20px" }}>
-                  <Image
-                    source={trophyImage}
-                    alt={t("HomePage.trophyAltText")}
-                    width={120}
-                  />
-                </div>
-              </Stack.Item>
-            </Stack>
-          </Card>
-        </Layout.Section>
-        <Layout.Section>
-          <ProductsCard />
-        </Layout.Section>
-      </Layout>
+    <Page title="Select a Theme">
+      <Card sectioned>
+        <Select
+          label="Choose a theme"
+          options={themes}
+          value={selectedTheme}
+          onChange={setSelectedTheme}
+        />
+        <Button primary onClick={handleRedirect} disabled={!selectedTheme}>
+          Go to App Embed Block
+        </Button>
+      </Card>
     </Page>
   );
 }

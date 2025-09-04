@@ -91,36 +91,36 @@ connectDB();
 // App proxy endpoint for form submissions
 app.post("/userdata/submit-form", async (req, res) => {
   try {
-    const { username, email } = req.body;
+    const { username, email, message, rating, productId, productTitle } = req.body;
     const shop = req.query.shop;
 
-    if (!username || !email || !shop) {
-      return res.status(400).json({ 
-        success: false, 
-        error: "Missing required fields: username, email, or shop" 
-      });
+    if (!shop) {
+      return res.status(400).json({ success: false, error: "Missing required field: shop" });
+    }
+
+    // Validate review submission or legacy user form
+    const isReview = typeof message === 'string' && message.trim().length > 0;
+    if (!isReview && (!username || !email)) {
+      return res.status(400).json({ success: false, error: "Missing required fields for submission" });
     }
 
     // Create new form submission
     const formSubmission = new FormSubmission({
       username,
       email,
+      message,
+      rating,
+      productId,
+      productTitle,
       shop
     });
 
     await formSubmission.save();
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Form submitted successfully",
-      data: formSubmission
-    });
+    res.status(200).json({ success: true, message: "Form submitted successfully", data: formSubmission });
   } catch (error) {
     console.error('Form submission error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: "Internal server error" 
-    });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -150,6 +150,24 @@ app.get("/userdata/userinfo", async (req, res) => {
       success: false, 
       error: "Internal server error" 
     });
+  }
+});
+
+// Delete a submission by id
+app.delete("/userdata/submission/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    if (!id) {
+      return res.status(400).json({ success: false, error: "Missing id" });
+    }
+    const deleted = await FormSubmission.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, error: "Not found" });
+    }
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error deleting submission:', error);
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 

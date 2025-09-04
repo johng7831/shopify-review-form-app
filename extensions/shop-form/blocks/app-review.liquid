@@ -1,0 +1,59 @@
+<div class="app-review-block" id="app-review-{{ block.id }}">
+  {% if block.settings.title %}
+    <h3>{{ block.settings.title }}</h3>
+  {% endif %}
+
+  <div class="app-review-header">
+    {% if product.featured_image %}
+      <img class="app-review-thumb" src="{{ product.featured_image | image_url: width: 160 }}" alt="{{ product.title }}">
+    {% endif %}
+    <div class="app-review-meta">
+      <div class="app-review-product-title">{{ product.title }}</div>
+      <div class="app-review-sub">How would you rate this product?</div>
+    </div>
+  </div>
+
+  <form 
+    class="app-review-form" 
+    data-product-id="{{ product.id }}" 
+    data-shop="{{ shop.permanent_domain }}"
+    data-product-title="{{ product.title }}"
+  >
+    <fieldset class="review-rating" aria-labelledby="rating-label">
+      <legend id="rating-label">Rating</legend>
+      <div class="stars" role="radiogroup" aria-label="Star rating">
+        {%- comment -%}
+          Radio inputs are in reverse order so CSS sibling selectors can fill previous stars on hover/checked
+        {%- endcomment -%}
+        {% for n in (1..5) reversed %}
+          <input type="radio" name="rating" id="rating-{{ n }}" value="{{ n }}">
+          <label for="rating-{{ n }}" aria-label="{{ n }} star{% if n > 1 %}s{% endif %}">★</label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <label class="sr-only" for="review-message-{{ block.id }}">Review content</label>
+    <textarea id="review-message-{{ block.id }}" name="message" placeholder="Start writing here..." required></textarea>
+
+    <button type="submit">Submit Review</button>
+  </form>
+</div>
+
+
+{% schema %}
+{
+  "name": "App Review Form",
+  "target": "section",
+  "class": "app-dashboard-form",
+  "stylesheet": "app-review.css",
+  "javascript": "app-review.js",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Form Title",
+      "default": "Write a Review"
+    }
+  ]
+}
+{% endschema %}

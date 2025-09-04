@@ -13,18 +13,35 @@ export const connectDB = async () => {
   }
 };
 
-// Form submission schema
+// Form submission schema (supports both contact form and product reviews)
 const formSubmissionSchema = new mongoose.Schema({
+  // Optional legacy fields from earlier form
   username: {
     type: String,
-    required: true,
     trim: true
   },
   email: {
     type: String,
-    required: true,
     trim: true,
     lowercase: true
+  },
+  // Review-specific fields
+  message: {
+    type: String,
+    trim: true
+  },
+  rating: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  productId: {
+    type: String,
+    trim: true
+  },
+  productTitle: {
+    type: String,
+    trim: true
   },
   shop: {
     type: String,

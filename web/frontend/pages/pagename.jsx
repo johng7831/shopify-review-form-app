@@ -1,15 +1,21 @@
 import { useEffect, useState } from "react";
-import { Card, Page, Layout, TextContainer, Text, Spinner } from "@shopify/polaris";
+import { Card, Page, Layout, Text, Spinner, DataTable, Tabs, Button } from "@shopify/polaris";
 
 export default function PageName() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(0);
 
   useEffect(() => {
     async function fetchUsers() {
       try {
-        // Replace with your actual shop domain dynamically if needed
-        const shop = "myapp-store-com.myshopify.com";
+        // Resolve shop dynamically from URL (embedded app)
+        const urlShop = new URLSearchParams(window.location.search).get("shop");
+        let shop = urlShop;
+        if (!shop && window?.frameElement?.src) {
+          const iframeShop = new URL(window.frameElement.src).searchParams.get("shop");
+          if (iframeShop) shop = iframeShop;
+        }
         const res = await fetch(`/userdata/userinfo?shop=${shop}`);
         const data = await res.json();
 
@@ -28,26 +34,75 @@ export default function PageName() {
     fetchUsers();
   }, []);
 
+  function renderStars(rating) {
+    const r = Number(rating) || 0;
+    const filled = "★".repeat(Math.max(0, Math.min(5, r)));
+    const empty = "☆".repeat(5 - Math.max(0, Math.min(5, r)));
+    return `${filled}${empty}`;
+  }
+
+  const isReviewEntry = (entry) => !!entry.message || !!entry.rating || !!entry.productId || !!entry.productTitle;
+  const reviews = users.filter(isReviewEntry);
+  const submissions = users.filter((e) => !isReviewEntry(e));
+
+  async function handleDelete(id) {
+    try {
+      await fetch(`/userdata/submission/${id}`, { method: 'DELETE' });
+      setUsers(prev => prev.filter(u => u._id !== id));
+    } catch (e) {
+      console.error('Delete failed', e);
+    }
+  }
+
+  const reviewRows = reviews.map((entry) => [
+    entry.productTitle || entry.productId || "-",
+    entry.rating ? renderStars(entry.rating) : "-",
+    entry.message || "-",
+    new Date(entry.submittedAt).toLocaleString(),
+    <Button destructive onClick={() => handleDelete(entry._id)}>Delete</Button>
+  ]);
+
+  const submissionRows = submissions.map((entry) => [
+    entry.username || "-",
+    entry.email || "-",
+    entry.message || "-",
+    new Date(entry.submittedAt).toLocaleString(),
+    <Button destructive onClick={() => handleDelete(entry._id)}>Delete</Button>
+  ]);
+
+  const tabs = [
+    { id: 'product-reviews', content: 'Product reviews' },
+    { id: 'form-submissions', content: 'Form submissions' },
+  ];
+
   return (
     <Page title="Form Submissions">
       <Layout>
         <Layout.Section>
           {loading ? (
-            <Spinner accessibilityLabel="Loading users" size="large" />
+            <Spinner accessibilityLabel="Loading submissions" size="large" />
           ) : users.length === 0 ? (
             <Text>No submissions found.</Text>
           ) : (
-            users.map((user) => (
-              <Card key={user._id} sectioned>
-                <TextContainer>
-                  <Text variant="headingMd">{user.username}</Text>
-                  <Text>Email: {user.email}</Text>
-                  <Text>
-                    Submitted: {new Date(user.submittedAt).toLocaleString()}
-                  </Text>
-                </TextContainer>
-              </Card>
-            ))
+            <>
+              <Tabs tabs={tabs} selected={selected} onSelect={setSelected}>
+                <Card>
+                  {selected === 0 ? (
+                    <DataTable
+                      columnContentTypes={["text", "text", "text", "text", "text"]}
+                      headings={["Product", "Rating", "Message", "Submitted", "Actions"]}
+                      rows={reviewRows}
+                    />
+                  ) : (
+                    <DataTable
+                      columnContentTypes={["text", "text", "text", "text", "text"]}
+                      headings={["Name", "Email", "Message", "Submitted", "Actions"]}
+                      rows={submissionRows}
+                    />
+                  )}
+                </Card>
+              </Tabs>
+            </>
           )}
         </Layout.Section>
       </Layout>

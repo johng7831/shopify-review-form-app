@@ -19,6 +19,7 @@ export default function App() {
         <QueryProvider>
           <NavMenu>
             <a href="/" rel="home" />
+             <a href="/onboarding">{t("onboarding")}</a>
             <a href="/pagename">{t("NavigationMenu.pageName")}</a>
           </NavMenu>
           <Routes pages={pages} />
