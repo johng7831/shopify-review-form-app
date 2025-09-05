@@ -1,0 +1,78 @@
+<div 
+  class="review-widget" 
+  data-product-id="{{ all_products[block.settings.product].id }}" 
+  data-shop="{{ shop.permanent_domain }}"
+  style="color:{{ block.settings.colour }}"
+>
+  <h3>Customer Reviews</h3>
+  <div class="reviews-list">Loading reviews...</div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll(".review-widget").forEach(async widget => {
+    const productId = widget.dataset.productId;
+    const shop = widget.dataset.shop;
+    const listEl = widget.querySelector(".reviews-list");
+
+    try {
+      const res = await fetch(`/apps/proxy/userdata/userinfo?shop=${encodeURIComponent(shop)}`);
+      const data = await res.json();
+
+      if (!data.success || !data.data) {
+        listEl.innerHTML = "<p>Error loading reviews</p>";
+        return;
+      }
+
+      // Filter reviews for this product
+      const reviews = data.data.filter(r => r.productId === productId);
+
+      if (reviews.length === 0) {
+        listEl.innerHTML = "<p>No reviews yet. Be the first to write one!</p>";
+        return;
+      }
+
+      // Render reviews
+      listEl.innerHTML = reviews.map(r => `
+        <div class="review-item" style="border-bottom:1px solid #ddd; padding:10px 0;">
+          <div class="review-stars">${renderStars(r.rating)}</div>
+          <p class="review-message">${r.message}</p>
+          <small class="review-date">${new Date(r.submittedAt).toLocaleDateString()}</small>
+        </div>
+      `).join("");
+    } catch (err) {
+      console.error("Error loading reviews:", err);
+      listEl.innerHTML = "<p>Error loading reviews</p>";
+    }
+  });
+
+  // Render ★★★★☆
+  function renderStars(rating) {
+    const full = Math.floor(rating);
+    const half = rating % 1 >= 0.5 ? 1 : 0;
+    const empty = 5 - full - half;
+    return "★".repeat(full) + (half ? "½" : "") + "☆".repeat(empty);
+  }
+});
+</script>
+
+{% schema %}
+{
+  "name": "Review Widget",
+  "target": "section",
+  "settings": [
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product",
+      "autofill": true
+    },
+    {
+      "type": "color",
+      "id": "colour",
+      "label": "Star Colour",
+      "default": "#ffcc00"
+    }
+  ]
+}
+{% endschema %}

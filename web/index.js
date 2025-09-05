@@ -9,10 +9,7 @@ import productCreator from "./product-creator.js";
 import PrivacyWebhookHandlers from "./privacy.js";
 import { connectDB, FormSubmission } from "./database.js";
 
-const PORT = parseInt(
-  process.env.BACKEND_PORT || process.env.PORT || "3000",
-  10
-);
+const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT || "3000", 10);
 
 const STATIC_PATH =
   process.env.NODE_ENV === "production"
@@ -21,7 +18,7 @@ const STATIC_PATH =
 
 const app = express();
 
-// Set up Shopify authentication and webhook handling
+// Shopify auth & webhook setup
 app.get(shopify.config.auth.path, shopify.auth.begin());
 app.get(
   shopify.config.auth.callbackPath,
@@ -33,78 +30,34 @@ app.post(
   shopify.processWebhooks({ webhookHandlers: PrivacyWebhookHandlers })
 );
 
-// If you are adding routes outside of the /api path, remember to
-// also add a proxy rule for them in web/frontend/vite.config.js
-
+// Middleware
 app.use("/api/*", shopify.validateAuthenticatedSession());
-
-
-
-
-
-// Allow app proxy requests without authentication
-app.use("/userdata/*", (req, res, next) => {
-  // For app proxy requests, skip authentication
-  next();
-});
-
-
-
-async function authenticateUser(req, res, next) {
-  try {
-    let shop = req.query.shop;
-    
-    if (!shop) {
-      return res.status(400).json({ error: "Shop parameter is required" });
-    }
-    
-    // For app proxy requests, we'll allow them to pass through
-    // since they're coming from the Shopify store frontend
-    if (req.path.startsWith('/userdata/')) {
-      return next();
-    }
-    
-    // For other requests, check if the shop has a valid session
-    let storeName = await shopify.config.sessionStorage.findSessionsByShop(shop);
-
-    if (storeName && storeName.length > 0 && shop === storeName[0].shop) {
-      next();
-    } else {
-      res.status(401).send("User Not Authorized");
-    }
-  } catch (error) {
-    console.error('Authentication error:', error);
-    // For app proxy requests, allow them to pass through even if there's an error
-    if (req.path.startsWith('/userdata/')) {
-      return next();
-    }
-    res.status(500).send("Authentication error");
-  }
-}
-
-
 app.use(express.json());
 
-// Connect to MongoDB
+// Allow app proxy requests (no auth)
+app.use("/userdata/*", (req, res, next) => next());
+
+// Connect MongoDB
 connectDB();
 
-// App proxy endpoint for form submissions
+/* --------------------------
+   Review API Endpoints
+--------------------------- */
+
+// Submit review
 app.post("/userdata/submit-form", async (req, res) => {
   try {
     const { username, email, message, rating, productId, productTitle } = req.body;
     const shop = req.query.shop;
 
     if (!shop) {
-      return res.status(400).json({ success: false, error: "Missing required field: shop" });
+      return res.status(400).json({ success: false, error: "Missing shop" });
     }
 
-    // Validate review submission or legacy user form
-    const isReview = typeof message === 'string' && message.trim().length > 0;
-    if (!isReview && (!username || !email)) {
-      return res.status(400).json({ success: false, error: "Missing required fields for submission" });
+    if (!message || !rating || !productId) {
+      return res.status(400).json({ success: false, error: "Missing required fields" });
     }
 
-    // Create new form submission
     const formSubmission = new FormSubmission({
       username,
       email,
@@ -116,167 +69,138 @@ app.post("/userdata/submit-form", async (req, res) => {
     });
 
     await formSubmission.save();
-
-    res.status(200).json({ success: true, message: "Form submitted successfully", data: formSubmission });
+    res.status(200).json({ success: true, message: "Review submitted", data: formSubmission });
   } catch (error) {
-    console.error('Form submission error:', error);
+    console.error("Submit error:", error);
     res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
-// App proxy endpoint to get form submissions
+// Get all reviews for shop
 app.get("/userdata/userinfo", async (req, res) => {
   try {
     const shop = req.query.shop;
-    
-    if (!shop) {
-      return res.status(400).json({ 
-        success: false, 
-        error: "Shop parameter is required" 
-      });
-    }
+    if (!shop) return res.status(400).json({ success: false, error: "Missing shop" });
 
-    // Get form submissions for this shop
     const submissions = await FormSubmission.find({ shop }).sort({ submittedAt: -1 });
-    
-    res.status(200).json({ 
-      success: true, 
-      data: submissions,
-      count: submissions.length
-    });
+    res.status(200).json({ success: true, data: submissions, count: submissions.length });
   } catch (error) {
-    console.error('Error fetching form submissions:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: "Internal server error" 
-    });
-  }
-});
-
-// Delete a submission by id
-app.delete("/userdata/submission/:id", async (req, res) => {
-  try {
-    const id = req.params.id;
-    if (!id) {
-      return res.status(400).json({ success: false, error: "Missing id" });
-    }
-    const deleted = await FormSubmission.findByIdAndDelete(id);
-    if (!deleted) {
-      return res.status(404).json({ success: false, error: "Not found" });
-    }
-    res.status(200).json({ success: true });
-  } catch (error) {
-    console.error('Error deleting submission:', error);
+    console.error("Fetch error:", error);
     res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
-// Admin page to view form submissions
+// Get average rating per product
+app.get("/userdata/average-rating", async (req, res) => {
+  try {
+    const { shop, productId } = req.query;
+    if (!shop || !productId) {
+      return res.status(400).json({ success: false, error: "Missing shop or productId" });
+    }
+
+    const reviews = await FormSubmission.find({ shop, productId, rating: { $exists: true } });
+
+    if (reviews.length === 0) {
+      return res.status(200).json({ success: true, average: null, count: 0 });
+    }
+
+    const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+    const avg = sum / reviews.length;
+
+    res.status(200).json({
+      success: true,
+      average: avg.toFixed(1),
+      count: reviews.length
+    });
+  } catch (error) {
+    console.error("Average rating error:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+
+// Delete review by id
+app.delete("/userdata/submission/:id", async (req, res) => {
+  try {
+    const deleted = await FormSubmission.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, error: "Not found" });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error("Delete error:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+
+// Admin HTML page
 app.get("/userdata/admin", async (req, res) => {
   try {
     const shop = req.query.shop;
-    
-    if (!shop) {
-      return res.status(400).send("Shop parameter is required");
-    }
+    if (!shop) return res.status(400).send("Shop parameter required");
 
-    // Get form submissions for this shop
     const submissions = await FormSubmission.find({ shop }).sort({ submittedAt: -1 });
-    
+
     const html = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Form Submissions - ${shop}</title>
+        <title>Reviews - ${shop}</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
+          body { font-family: Arial; margin: 20px; }
           .header { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-          .submission { background: white; border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
-          .submission h3 { margin: 0 0 10px 0; color: #333; }
-          .submission p { margin: 5px 0; color: #666; }
-          .count { font-size: 1.2em; font-weight: bold; color: #007aff; }
-          .no-data { text-align: center; color: #666; font-style: italic; }
+          .review { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
+          .review h3 { margin: 0 0 5px 0; }
+          .review p { margin: 5px 0; }
         </style>
       </head>
       <body>
         <div class="header">
-          <h1>Form Submissions</h1>
+          <h1>Product Reviews</h1>
           <p><strong>Shop:</strong> ${shop}</p>
-          <p class="count">Total Submissions: ${submissions.length}</p>
+          <p>Total Reviews: ${submissions.length}</p>
         </div>
-        
-        ${submissions.length === 0 ? 
-          '<div class="no-data">No form submissions yet.</div>' : 
-          submissions.map(sub => `
-            <div class="submission">
-              <h3>${sub.username}</h3>
-              <p><strong>Email:</strong> ${sub.email}</p>
-              <p><strong>Submitted:</strong> ${new Date(sub.submittedAt).toLocaleString()}</p>
-            </div>
-          `).join('')
-        }
+        ${submissions.map(sub => `
+          <div class="review">
+            <h3>${sub.productTitle} - ${sub.rating} ★</h3>
+            <p><strong>Message:</strong> ${sub.message}</p>
+            <p><em>${new Date(sub.submittedAt).toLocaleString()}</em></p>
+          </div>
+        `).join("")}
       </body>
       </html>
     `;
-    
+
     res.status(200).send(html);
   } catch (error) {
-    console.error('Error loading admin page:', error);
+    console.error("Admin error:", error);
     res.status(500).send("Internal server error");
   }
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* --------------------------
+   Default Shopify routes
+--------------------------- */
 app.get("/api/products/count", async (_req, res) => {
   const client = new shopify.api.clients.Graphql({
     session: res.locals.shopify.session,
   });
 
-  const countData = await client.request(`
-    query shopifyProductCount {
-      productsCount {
-        count
-      }
-    }
-  `);
-
+  const countData = await client.request(`query { productsCount { count } }`);
   res.status(200).send({ count: countData.data.productsCount.count });
 });
 
 app.post("/api/products", async (_req, res) => {
-  let status = 200;
-  let error = null;
-
   try {
     await productCreator(res.locals.shopify.session);
+    res.status(200).send({ success: true });
   } catch (e) {
-    console.log(`Failed to process products/create: ${e.message}`);
-    status = 500;
-    error = e.message;
+    console.log("Error creating product:", e.message);
+    res.status(500).send({ success: false, error: e.message });
   }
-  res.status(status).send({ success: status === 200, error });
 });
 
+// Serve frontend
 app.use(shopify.cspHeaders());
 app.use(serveStatic(STATIC_PATH, { index: false }));
-
-app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
+app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res) => {
   return res
     .status(200)
     .set("Content-Type", "text/html")
@@ -287,4 +211,4 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res, _next) => {
     );
 });
 
-app.listen(PORT);
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

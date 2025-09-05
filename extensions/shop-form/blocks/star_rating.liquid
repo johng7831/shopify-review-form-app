@@ -1,21 +1,70 @@
-{% assign avg_rating = block.settings.product.metafields.demo.avg_rating.value | round %}
-<span style="color:{{ block.settings.colour }}">
-  {% render 'stars', rating: avg_rating %}
-</span>
-{% if avg_rating >= 4 %}
-  <br>
-  <img src="{{ "thumbs-up.png" | asset_img_url: '15x' }}" height="15" width="15" loading="lazy">
-  {{ 'ratings.home.recommendationText' | t }}
-{% endif %}
+<div 
+  class="star-rating-widget" 
+  data-product-id="{{ all_products[block.settings.product].id }}" 
+  data-shop="{{ shop.permanent_domain }}"
+  style="color:{{ block.settings.colour }}"
+>
+  <span class="star-rating-value">Loading rating...</span>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll(".star-rating-widget").forEach(async widget => {
+    const productId = widget.dataset.productId;
+    const shop = widget.dataset.shop;
+
+    try {
+      const res = await fetch(`/apps/proxy/userdata/average-rating?shop=${encodeURIComponent(shop)}&productId=${productId}`);
+      const data = await res.json();
+
+      if (data.success && data.average) {
+        const avg = parseFloat(data.average);
+        const stars = renderStars(avg);
+
+        widget.innerHTML = `
+          <div class="stars">${stars}</div>
+          <div class="rating-text">${avg} / 5 (${data.count} reviews)</div>
+          ${avg >= 4 
+            ? `<br><img src="{{ 'thumbs-up.png' | asset_img_url: '15x' }}" height="15" width="15" alt="Recommended"> Recommended` 
+            : ""}
+        `;
+      } else {
+        widget.innerHTML = `<span>No ratings yet.</span>`;
+      }
+    } catch (err) {
+      console.error("Error loading rating:", err);
+      widget.innerHTML = `<span>Error loading rating</span>`;
+    }
+  });
+
+  // Render stars ★★★★☆
+  function renderStars(rating) {
+    const full = Math.floor(rating);
+    const half = rating % 1 >= 0.5 ? 1 : 0;
+    const empty = 5 - full - half;
+
+    return "★".repeat(full) + (half ? "½" : "") + "☆".repeat(empty);
+  }
+});
+</script>
 
 {% schema %}
 {
   "name": "Star Rating",
   "target": "section",
   "settings": [
-    { "type": "product", "id": "product", "label": "product", "autofill": true },
-    { "type": "color", "id": "colour", "label": "Star Colour", "default": "#ff0000" }
+    {
+      "type": "product",
+      "id": "product",
+      "label": "Product",
+      "autofill": true
+    },
+    {
+      "type": "color",
+      "id": "colour",
+      "label": "Star Colour",
+      "default": "#ffcc00"
+    }
   ]
 }
 {% endschema %}
-
