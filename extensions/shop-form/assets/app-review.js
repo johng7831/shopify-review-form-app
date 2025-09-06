@@ -7,6 +7,24 @@ document.addEventListener("DOMContentLoaded", function () {
       const existingMsg = form.querySelector(".app-form-message, .app-form-error");
       if (existingMsg) existingMsg.remove();
 
+      const username = form.querySelector("input[name='username']").value.trim();
+      if (!username) {
+        const err = document.createElement("div");
+        err.className = "app-form-error";
+        err.innerText = "Please enter your name.";
+        form.appendChild(err);
+        return;
+      }
+
+      const email = form.querySelector("input[name='email']").value.trim();
+      if (!email) {
+        const err = document.createElement("div");
+        err.className = "app-form-error";
+        err.innerText = "Please enter your email address.";
+        form.appendChild(err);
+        return;
+      }
+
       const message = form.querySelector("textarea[name='message']").value.trim();
       if (!message) {
         const err = document.createElement("div");
@@ -29,6 +47,8 @@ document.addEventListener("DOMContentLoaded", function () {
       const productId = form.dataset.productId || "";
 
       const payload = {
+        username,
+        email,
         message,
         rating,
         productId,

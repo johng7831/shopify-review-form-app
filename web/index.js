@@ -8,6 +8,7 @@ import shopify from "./shopify.js";
 import productCreator from "./product-creator.js";
 import PrivacyWebhookHandlers from "./privacy.js";
 import { connectDB, FormSubmission } from "./database.js";
+import mongoose from "mongoose";
 
 const PORT = parseInt(process.env.BACKEND_PORT || process.env.PORT || "3000", 10);
 
@@ -34,7 +35,7 @@ app.post(
 app.use("/api/*", shopify.validateAuthenticatedSession());
 app.use(express.json());
 
-// Allow app proxy requests (no auth)
+// Allow app proxy requests (no auth required)
 app.use("/userdata/*", (req, res, next) => next());
 
 // Connect MongoDB
@@ -44,35 +45,82 @@ connectDB();
    Review API Endpoints
 --------------------------- */
 
-// Submit review
+// Submit form (handles both simple registrations and reviews)
 app.post("/userdata/submit-form", async (req, res) => {
   try {
+    console.log("Form submission received:", req.body);
+    console.log("Shop parameter:", req.query.shop);
+    
+    // Check database connection
+    if (mongoose.connection.readyState !== 1) {
+      console.error("Database not connected. State:", mongoose.connection.readyState);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Database connection error" 
+      });
+    }
+    
     const { username, email, message, rating, productId, productTitle } = req.body;
     const shop = req.query.shop;
 
     if (!shop) {
-      return res.status(400).json({ success: false, error: "Missing shop" });
+      console.log("Missing shop parameter");
+      return res.status(400).json({ success: false, error: "Missing shop parameter" });
     }
 
-    if (!message || !rating || !productId) {
-      return res.status(400).json({ success: false, error: "Missing required fields" });
+    // Check if this is a simple form submission (just name and email)
+    const isSimpleForm = !message && !rating && !productId;
+    
+    if (isSimpleForm) {
+      // Simple form submission - only require username and email
+      if (!username || !email) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing required fields: username and email"
+        });
+      }
+    } else {
+      // Review submission - require all review fields
+      if (!username || !message || !rating || !productId) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing required fields: username, message, rating, productId"
+        });
+      }
     }
 
-    const formSubmission = new FormSubmission({
+    // Prepare form data
+    const formData = {
       username,
-      email,
-      message,
-      rating,
-      productId,
-      productTitle,
-      shop
-    });
+      email: email || null,
+      shop,
+    };
+
+    // Add review fields only if they exist (for review submissions)
+    if (message) formData.message = message;
+    if (rating) formData.rating = rating;
+    if (productId) formData.productId = productId;
+    if (productTitle) formData.productTitle = productTitle;
+
+    const formSubmission = new FormSubmission(formData);
 
     await formSubmission.save();
-    res.status(200).json({ success: true, message: "Review submitted", data: formSubmission });
+    
+    const successMessage = isSimpleForm ? "Registration submitted successfully" : "Review submitted successfully";
+    console.log("Form saved successfully:", formSubmission);
+    res.status(200).json({ success: true, message: successMessage, data: formSubmission });
   } catch (error) {
     console.error("Submit error:", error);
-    res.status(500).json({ success: false, error: "Internal server error" });
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    res.status(500).json({ 
+      success: false, 
+      error: "Internal server error",
+      details: error.message 
+    });
   }
 });
 
@@ -80,7 +128,7 @@ app.post("/userdata/submit-form", async (req, res) => {
 app.get("/userdata/userinfo", async (req, res) => {
   try {
     const shop = req.query.shop;
-    if (!shop) return res.status(400).json({ success: false, error: "Missing shop" });
+    if (!shop) return res.status(400).json({ success: false, error: "Missing shop parameter" });
 
     const submissions = await FormSubmission.find({ shop }).sort({ submittedAt: -1 });
     res.status(200).json({ success: true, data: submissions, count: submissions.length });
@@ -109,8 +157,8 @@ app.get("/userdata/average-rating", async (req, res) => {
 
     res.status(200).json({
       success: true,
-      average: avg.toFixed(1),
-      count: reviews.length
+      average: parseFloat(avg.toFixed(1)),
+      count: reviews.length,
     });
   } catch (error) {
     console.error("Average rating error:", error);
@@ -122,7 +170,7 @@ app.get("/userdata/average-rating", async (req, res) => {
 app.delete("/userdata/submission/:id", async (req, res) => {
   try {
     const deleted = await FormSubmission.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ success: false, error: "Not found" });
+    if (!deleted) return res.status(404).json({ success: false, error: "Review not found" });
     res.status(200).json({ success: true });
   } catch (error) {
     console.error("Delete error:", error);
@@ -130,7 +178,7 @@ app.delete("/userdata/submission/:id", async (req, res) => {
   }
 });
 
-// Admin HTML page
+// Admin HTML page (basic view without Polaris)
 app.get("/userdata/admin", async (req, res) => {
   try {
     const shop = req.query.shop;
@@ -144,8 +192,8 @@ app.get("/userdata/admin", async (req, res) => {
       <head>
         <title>Reviews - ${shop}</title>
         <style>
-          body { font-family: Arial; margin: 20px; }
-          .header { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+          body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+          .header { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
           .review { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 8px; }
           .review h3 { margin: 0 0 5px 0; }
           .review p { margin: 5px 0; }
@@ -159,7 +207,8 @@ app.get("/userdata/admin", async (req, res) => {
         </div>
         ${submissions.map(sub => `
           <div class="review">
-            <h3>${sub.productTitle} - ${sub.rating} ★</h3>
+            <h3>${sub.email || "No email"} - ${sub.productTitle} - ${sub.rating} ★</h3>
+            <p><strong>Name:</strong> ${sub.username || "Anonymous"}</p>
             <p><strong>Message:</strong> ${sub.message}</p>
             <p><em>${new Date(sub.submittedAt).toLocaleString()}</em></p>
           </div>
@@ -211,4 +260,4 @@ app.use("/*", shopify.ensureInstalledOnShop(), async (_req, res) => {
     );
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

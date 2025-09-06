@@ -5,7 +5,7 @@
 
   <div class="app-review-header">
     {% if product.featured_image %}
-      <img class="app-review-thumb" src="{{ product.featured_image | image_url: width: 160 }}" alt="{{ product.title }}">
+      <img class="app-review-thumb" src="{{ product.featured_image | image_url: width: 160 }}" alt="{{ product.title }}" width="160" height="160">
     {% endif %}
     <div class="app-review-meta">
       <div class="app-review-product-title">{{ product.title }}</div>
@@ -19,6 +19,16 @@
     data-shop="{{ shop.permanent_domain }}"
     data-product-title="{{ product.title }}"
   >
+    <div class="form-field">
+      <label for="username-{{ block.id }}">Your Name</label>
+      <input type="text" name="username" id="username-{{ block.id }}" required />
+    </div>
+
+    <div class="form-field">
+      <label for="email-{{ block.id }}">Email Address</label>
+      <input type="email" name="email" id="email-{{ block.id }}" required />
+    </div>
+
     <fieldset class="review-rating" aria-labelledby="rating-label">
       <legend id="rating-label">Rating</legend>
       <div class="stars" role="radiogroup" aria-label="Star rating">

@@ -41,38 +41,45 @@ export default function PageName() {
     return `${filled}${empty}`;
   }
 
-  const isReviewEntry = (entry) => !!entry.message || !!entry.rating || !!entry.productId || !!entry.productTitle;
+  // Separate product reviews vs form submissions
+  const isReviewEntry = (entry) =>
+    !!entry.message || !!entry.rating || !!entry.productId || !!entry.productTitle;
+
   const reviews = users.filter(isReviewEntry);
   const submissions = users.filter((e) => !isReviewEntry(e));
 
   async function handleDelete(id) {
     try {
-      await fetch(`/userdata/submission/${id}`, { method: 'DELETE' });
-      setUsers(prev => prev.filter(u => u._id !== id));
+      await fetch(`/userdata/submission/${id}`, { method: "DELETE" });
+      setUsers((prev) => prev.filter((u) => u._id !== id));
     } catch (e) {
-      console.error('Delete failed', e);
+      console.error("Delete failed", e);
     }
   }
 
+  // Product reviews table rows (separate columns)
   const reviewRows = reviews.map((entry) => [
-    entry.productTitle || entry.productId || "-",
-    entry.rating ? renderStars(entry.rating) : "-",
-    entry.message || "-",
-    new Date(entry.submittedAt).toLocaleString(),
-    <Button destructive onClick={() => handleDelete(entry._id)}>Delete</Button>
+    entry.email || "No email",                   // Email (moved to first position)
+    entry.username || "Anonymous",                // Reviewer
+    entry.productTitle || entry.productId || "-", // Product
+    entry.rating ? renderStars(entry.rating) : "-", // Rating
+    entry.message || "-",                        // Message
+    new Date(entry.submittedAt).toLocaleString(), // Submitted
+    <Button destructive onClick={() => handleDelete(entry._id)}>Delete</Button>, // Actions
   ]);
 
+  // Contact form submissions table rows (separate columns)
   const submissionRows = submissions.map((entry) => [
-    entry.username || "-",
-    entry.email || "-",
-    entry.message || "-",
-    new Date(entry.submittedAt).toLocaleString(),
-    <Button destructive onClick={() => handleDelete(entry._id)}>Delete</Button>
+    entry.username || "-",                        // Name
+    entry.email || "-",                           // Email
+    entry.message || "-",                         // Message
+    new Date(entry.submittedAt).toLocaleString(), // Submitted
+    <Button destructive onClick={() => handleDelete(entry._id)}>Delete</Button>, // Actions
   ]);
 
   const tabs = [
-    { id: 'product-reviews', content: 'Product reviews' },
-    { id: 'form-submissions', content: 'Form submissions' },
+    { id: "product-reviews", content: "Product reviews" },
+    { id: "form-submissions", content: "Form submissions" },
   ];
 
   return (
@@ -89,14 +96,42 @@ export default function PageName() {
                 <Card>
                   {selected === 0 ? (
                     <DataTable
-                      columnContentTypes={["text", "text", "text", "text", "text"]}
-                      headings={["Product", "Rating", "Message", "Submitted", "Actions"]}
+                      columnContentTypes={[
+                        "text",
+                        "text",
+                        "text",
+                        "text",
+                        "text",
+                        "text",
+                        "text",
+                      ]}
+                      headings={[
+                        "Email",
+                        "Reviewer",
+                        "Product",
+                        "Rating",
+                        "Message",
+                        "Submitted",
+                        "Actions",
+                      ]}
                       rows={reviewRows}
                     />
                   ) : (
                     <DataTable
-                      columnContentTypes={["text", "text", "text", "text", "text"]}
-                      headings={["Name", "Email", "Message", "Submitted", "Actions"]}
+                      columnContentTypes={[
+                        "text",
+                        "text",
+                        "text",
+                        "text",
+                        "text",
+                      ]}
+                      headings={[
+                        "Name",
+                        "Email",
+                        "Message",
+                        "Submitted",
+                        "Actions",
+                      ]}
                       rows={submissionRows}
                     />
                   )}

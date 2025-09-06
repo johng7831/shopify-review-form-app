@@ -37,7 +37,9 @@ document.addEventListener("DOMContentLoaded", function () {
         <div class="review-item" style="border-bottom:1px solid #ddd; padding:10px 0;">
           <div class="review-stars">${renderStars(r.rating)}</div>
           <p class="review-message">${r.message}</p>
-          <small class="review-date">${new Date(r.submittedAt).toLocaleDateString()}</small>
+          <small class="review-meta">
+            ${r.email || "No email"} • ${r.username || "Anonymous"} • ${new Date(r.submittedAt).toLocaleDateString()}
+          </small>
         </div>
       `).join("");
     } catch (err) {
