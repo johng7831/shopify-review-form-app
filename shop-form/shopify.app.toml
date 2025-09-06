@@ -1,0 +1,32 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "77c41742e2a17ed86a2af89663d86ddf"
+name = "shop-form"
+application_url = "https://huge-crops-mitchell-provider.trycloudflare.com"
+embedded = true
+handle = "shop-form-2"
+
+[build]
+automatically_update_urls_on_dev = true
+
+[webhooks]
+api_version = "2025-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "write_products"
+
+[auth]
+redirect_urls = [
+  "https://huge-crops-mitchell-provider.trycloudflare.com/auth/callback",
+  "https://huge-crops-mitchell-provider.trycloudflare.com/auth/shopify/callback",
+  "https://huge-crops-mitchell-provider.trycloudflare.com/api/auth/callback"
+]
+
+[app_proxy]
+url = "https://huge-crops-mitchell-provider.trycloudflare.com"
+subpath = "proxy"
+prefix = "apps"
+
+[pos]
+embedded = false

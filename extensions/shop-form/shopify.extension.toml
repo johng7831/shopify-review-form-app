@@ -1,3 +1,14 @@
 name = "shop-form"
+uid = "c7df7b09-bd3c-0e9b-a149-244dcbed72dde995861c"
 type = "theme"
 
+[build]
+command = ""
+watch = []
+
+[[extensions]]
+type = "theme"
+name = "shop-form"
+handle = "shop-form"
+
+[extensions.settings]
