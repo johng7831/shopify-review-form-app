@@ -9,7 +9,6 @@ export default function PageName() {
   useEffect(() => {
     async function fetchUsers() {
       try {
-        // Resolve shop dynamically from URL (embedded app)
         const urlShop = new URLSearchParams(window.location.search).get("shop");
         let shop = urlShop;
         if (!shop && window?.frameElement?.src) {
@@ -18,19 +17,14 @@ export default function PageName() {
         }
         const res = await fetch(`/userdata/userinfo?shop=${shop}`);
         const data = await res.json();
-
-        if (data.success) {
-          setUsers(data.data);
-        } else {
-          console.error("Error fetching users:", data.error);
-        }
+        if (data.success) setUsers(data.data);
+        else console.error("Error fetching users:", data.error);
       } catch (err) {
         console.error("Fetch error:", err);
       } finally {
         setLoading(false);
       }
     }
-
     fetchUsers();
   }, []);
 
@@ -41,9 +35,8 @@ export default function PageName() {
     return `${filled}${empty}`;
   }
 
-  // Separate product reviews vs form submissions
   const isReviewEntry = (entry) =>
-    !!entry.message || !!entry.rating || !!entry.productId || !!entry.productTitle;
+    !!entry.message || !!entry.rating || !!entry.productTitle;
 
   const reviews = users.filter(isReviewEntry);
   const submissions = users.filter((e) => !isReviewEntry(e));
@@ -57,24 +50,37 @@ export default function PageName() {
     }
   }
 
-  // Product reviews table rows (separate columns)
   const reviewRows = reviews.map((entry) => [
-    entry.email || "No email",                   // Email (moved to first position)
-    entry.username || "Anonymous",                // Reviewer
-    entry.productTitle || entry.productId || "-", // Product
-    entry.rating ? renderStars(entry.rating) : "-", // Rating
-    entry.message || "-",                        // Message
-    new Date(entry.submittedAt).toLocaleString(), // Submitted
-    <Button destructive onClick={() => handleDelete(entry._id)}>Delete</Button>, // Actions
+    entry.email || "No email",
+    entry.username || "Anonymous",
+    entry.productTitle || "-",
+    entry.rating ? renderStars(entry.rating) : "-",
+    entry.message || "-",
+    entry.image ? (
+      <img
+        src={entry.image}
+        alt="Review Image"
+        style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "4px" }}
+        onError={(e) => {
+          e.target.style.display = 'none';
+          e.target.nextSibling.style.display = 'inline';
+        }}
+      />
+    ) : "-",
+    new Date(entry.submittedAt).toLocaleString(),
+    <Button destructive onClick={() => handleDelete(entry._id)}>
+      Delete
+    </Button>,
   ]);
 
-  // Contact form submissions table rows (separate columns)
   const submissionRows = submissions.map((entry) => [
-    entry.username || "-",                        // Name
-    entry.email || "-",                           // Email
-    entry.message || "-",                         // Message
-    new Date(entry.submittedAt).toLocaleString(), // Submitted
-    <Button destructive onClick={() => handleDelete(entry._id)}>Delete</Button>, // Actions
+    entry.username || "-",
+    entry.email || "-",
+    entry.message || "-",
+    new Date(entry.submittedAt).toLocaleString(),
+    <Button destructive onClick={() => handleDelete(entry._id)}>
+      Delete
+    </Button>,
   ]);
 
   const tabs = [
@@ -91,53 +97,41 @@ export default function PageName() {
           ) : users.length === 0 ? (
             <Text>No submissions found.</Text>
           ) : (
-            <>
-              <Tabs tabs={tabs} selected={selected} onSelect={setSelected}>
-                <Card>
-                  {selected === 0 ? (
-                    <DataTable
-                      columnContentTypes={[
-                        "text",
-                        "text",
-                        "text",
-                        "text",
-                        "text",
-                        "text",
-                        "text",
-                      ]}
-                      headings={[
-                        "Email",
-                        "Reviewer",
-                        "Product",
-                        "Rating",
-                        "Message",
-                        "Submitted",
-                        "Actions",
-                      ]}
-                      rows={reviewRows}
-                    />
-                  ) : (
-                    <DataTable
-                      columnContentTypes={[
-                        "text",
-                        "text",
-                        "text",
-                        "text",
-                        "text",
-                      ]}
-                      headings={[
-                        "Name",
-                        "Email",
-                        "Message",
-                        "Submitted",
-                        "Actions",
-                      ]}
-                      rows={submissionRows}
-                    />
-                  )}
-                </Card>
-              </Tabs>
-            </>
+            <Tabs tabs={tabs} selected={selected} onSelect={setSelected}>
+              <Card>
+                {selected === 0 ? (
+                  <DataTable
+                    columnContentTypes={[
+                      "text",
+                      "text",
+                      "text",
+                      "text",
+                      "text",
+                      "text",
+                      "text",
+                      "text",
+                    ]}
+                    headings={[
+                      "Email",
+                      "Reviewer",
+                      "Product",
+                      "Rating",
+                      "Message",
+                      "Review Image",
+                      "Submitted",
+                      "Actions",
+                    ]}
+                    rows={reviewRows}
+                  />
+                ) : (
+                  <DataTable
+                    columnContentTypes={["text", "text", "text", "text", "text"]}
+                    headings={["Name", "Email", "Message", "Submitted", "Actions"]}
+                    rows={submissionRows}
+                  />
+                )}
+              </Card>
+            </Tabs>
           )}
         </Layout.Section>
       </Layout>

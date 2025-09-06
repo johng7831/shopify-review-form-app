@@ -58,6 +58,7 @@ export default defineConfig({
       "^/(\\?.*)?$": proxyOptions,
       "^/api(/|(\\?.*)?$)": proxyOptions,
       "^/userdata(/|(\\?.*)?$)": proxyOptions,
+      "^/uploads(/|(\\?.*)?$)": proxyOptions,
     },
   },
 });

@@ -15,8 +15,10 @@
 
   <form 
     class="app-review-form" 
+    action="/userdata/submit-form?shop={{ shop.permanent_domain }}"
+    method="POST" 
+    enctype="multipart/form-data"
     data-product-id="{{ product.id }}" 
-    data-shop="{{ shop.permanent_domain }}"
     data-product-title="{{ product.title }}"
   >
     <div class="form-field">
@@ -32,9 +34,6 @@
     <fieldset class="review-rating" aria-labelledby="rating-label">
       <legend id="rating-label">Rating</legend>
       <div class="stars" role="radiogroup" aria-label="Star rating">
-        {%- comment -%}
-          Radio inputs are in reverse order so CSS sibling selectors can fill previous stars on hover/checked
-        {%- endcomment -%}
         {% for n in (1..5) reversed %}
           <input type="radio" name="rating" id="rating-{{ n }}" value="{{ n }}">
           <label for="rating-{{ n }}" aria-label="{{ n }} star{% if n > 1 %}s{% endif %}">★</label>
@@ -45,9 +44,19 @@
     <label class="sr-only" for="review-message-{{ block.id }}">Review content</label>
     <textarea id="review-message-{{ block.id }}" name="message" placeholder="Start writing here..." required></textarea>
 
+    <div class="form-field">
+      <label for="image-{{ block.id }}">Upload Image</label>
+      <input type="file" name="image" id="image-{{ block.id }}" accept="image/*" />
+    </div>
+
     <button type="submit">Submit Review</button>
   </form>
 </div>
+
+
+
+
+
 
 
 {% schema %}

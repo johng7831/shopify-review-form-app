@@ -5,7 +5,10 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/shopif
 // Connect to MongoDB
 export const connectDB = async () => {
   try {
-    await mongoose.connect(MONGODB_URI);
+    await mongoose.connect(MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
     console.log('MongoDB connected successfully');
   } catch (error) {
     console.error('MongoDB connection error:', error);
@@ -15,7 +18,6 @@ export const connectDB = async () => {
 
 // Form submission schema (supports both contact form and product reviews)
 const formSubmissionSchema = new mongoose.Schema({
-  // Optional legacy fields from earlier form
   username: {
     type: String,
     trim: true
@@ -25,7 +27,6 @@ const formSubmissionSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   },
-  // Review-specific fields
   message: {
     type: String,
     trim: true
@@ -42,6 +43,11 @@ const formSubmissionSchema = new mongoose.Schema({
   productTitle: {
     type: String,
     trim: true
+  },
+  image: {               // Use 'image' to match backend field
+    type: String,
+    trim: true,
+    default: null
   },
   shop: {
     type: String,

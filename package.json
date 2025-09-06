@@ -12,7 +12,8 @@
     "deploy": "shopify app deploy"
   },
   "dependencies": {
-    "mongoose": "^8.18.0"
+    "mongoose": "^8.18.0",
+    "multer": "^2.0.2"
   },
   "author": "vqcodes",
   "private": true,

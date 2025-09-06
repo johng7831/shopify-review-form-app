@@ -43,27 +43,32 @@ document.addEventListener("DOMContentLoaded", function () {
         form.appendChild(err);
         return;
       }
+
       const productTitle = form.dataset.productTitle || "";
       const productId = form.dataset.productId || "";
 
-      const payload = {
-        username,
-        email,
-        message,
-        rating,
-        productId,
-        productTitle
-      };
+      // Create FormData for file + text
+      const formData = new FormData();
+      formData.append("username", username);
+      formData.append("email", email);
+      formData.append("message", message);
+      formData.append("rating", rating);
+      formData.append("productTitle", productTitle);
+      formData.append("productId", productId);
+
+      const fileInput = form.querySelector("input[name='image']");
+      if (fileInput && fileInput.files.length > 0) {
+        formData.append("image", fileInput.files[0]);
+      }
 
       const submitBtn = form.querySelector("button[type='submit']");
       submitBtn.disabled = true;
       submitBtn.innerText = "Submitting...";
 
       try {
-        const res = await fetch(`/apps/proxy/userdata/submit-form?shop=${encodeURIComponent(form.dataset.shop)}` , {
+        const res = await fetch(`/apps/proxy/userdata/submit-form?shop=${encodeURIComponent(form.dataset.shop)}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: formData // FormData automatically sets multipart/form-data
         });
 
         if (!res.ok) {

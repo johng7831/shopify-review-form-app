@@ -37,6 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
         <div class="review-item" style="border-bottom:1px solid #ddd; padding:10px 0;">
           <div class="review-stars">${renderStars(r.rating)}</div>
           <p class="review-message">${r.message}</p>
+          ${r.image ? `<div style="margin-top: 8px;"><img src="/apps/proxy${r.image}" alt="Review Image" style="max-width: 200px; height: auto; border-radius: 4px;" onerror="this.style.display='none'"></div>` : ''}
           <small class="review-meta">
             ${r.email || "No email"} • ${r.username || "Anonymous"} • ${new Date(r.submittedAt).toLocaleDateString()}
           </small>
